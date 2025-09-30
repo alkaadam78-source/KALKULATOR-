@@ -1,0 +1,424 @@
+<!DOCTYPE html><html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Futuristic RGB Calculator</title>
+  <style>
+    :root{
+      --bg1:#0a0b10;
+      --panel:#0f1120;
+      --glass:rgba(255,255,255,0.06);
+      --accent:#6cfaff;
+      --accent2:#a0ff6c;
+      --accent3:#ff6cf0;
+      --text:#e9f0ff;
+      --sub:#9aa6c7;
+      --good:#6CFF9B;
+      --bad:#FF6C9C;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;}
+    body{
+      margin:0;
+      font-family: ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,Apple Color Emoji,Segoe UI Emoji;
+      color:var(--text);
+      background: radial-gradient(1200px 800px at 20% 10%, rgba(108,250,255,0.15), transparent 60%),
+                  radial-gradient(900px 600px at 80% 0%, rgba(255,108,240,0.12), transparent 60%),
+                  radial-gradient(1000px 700px at 50% 100%, rgba(160,255,108,0.10), transparent 60%),
+                  var(--bg1);
+      overflow:hidden;
+    }/* RGB neon border animation */
+.neon {
+  position:relative;
+  border-radius:22px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
+}
+.neon::before{
+  content:"";
+  position:absolute; inset:-2px; border-radius:24px;
+  background: conic-gradient(from 0deg,
+    #6cfaff, #a0ff6c, #ff6cf0, #6cfaff);
+  filter: blur(14px) saturate(160%);
+  z-index:-1; animation: spin 8s linear infinite;
+  opacity:.7;
+}
+@keyframes spin {to{transform: rotate(360deg)}}
+
+/* layout */
+.wrap{position:relative; height:100%; display:grid; grid-template-columns: 1fr min(980px, 96vw) 1fr;}
+.center{grid-column:2; display:grid; grid-template-columns: 1fr; gap:16px; padding:24px;}
+
+header{
+  display:flex; align-items:center; justify-content:space-between;
+  gap:16px; padding:8px 0 0; opacity:.95;
+}
+header h1{margin:0; font-size:clamp(20px, 3vw, 32px); letter-spacing:.5px;}
+header .sub{color:var(--sub); font-size:12px}
+
+/* matrix-like falling math */
+canvas#rain{position:fixed; inset:0; z-index:0; opacity:0.35;}
+
+.grid{display:grid; grid-template-columns: 1.4fr .9fr; gap:16px}
+@media (max-width: 980px){ .grid{grid-template-columns: 1fr;}}
+
+.panel{backdrop-filter: blur(8px); background:var(--glass)}
+
+/* Calculator */
+.calc{display:grid; grid-template-rows:auto 1fr; gap:8px; padding:16px}
+
+.display{
+  background: rgba(0,0,0,0.35);
+  border-radius:16px; padding:14px 16px; min-height:84px;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
+  display:grid; align-content:center;
+}
+.display .expr{font-size:14px; color:var(--sub); min-height:18px; word-break:break-all}
+.display .result{font-size:32px; line-height:1.25; font-weight:700; word-break:break-all}
+
+.keys{ display:grid; gap:10px; grid-template-columns: repeat(4,1fr); }
+.btn{
+  border:none; border-radius:14px; padding:14px 10px; font-size:16px; font-weight:700; color:var(--text);
+  background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.03));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.09),
+    0 2px 12px rgba(0,0,0,0.35);
+  cursor:pointer; transition: transform .04s ease, box-shadow .2s ease, filter .2s ease;
+  position:relative; overflow:hidden;
+}
+.btn:active{ transform: translateY(1px) scale(.99); filter:saturate(140%)}
+.btn .sub{display:block; font-weight:500; font-size:10px; color:var(--sub); letter-spacing:.4px}
+.btn.op{ background: linear-gradient(180deg, rgba(108,250,255,0.2), rgba(108,250,255,0.08)); }
+.btn.eq{ background: linear-gradient(180deg, rgba(160,255,108,0.25), rgba(160,255,108,0.12)); grid-column: span 2; }
+.btn.clear{ background: linear-gradient(180deg, rgba(255,108,156,0.25), rgba(255,108,156,0.12)); }
+
+/* History */
+.history{ max-height:220px; overflow:auto; padding:8px; font-size:13px; }
+.history h3{margin:6px 0 10px; font-size:12px; color:var(--sub); font-weight:600; letter-spacing:.4px}
+.history ul{list-style:none; padding:0; margin:0; display:grid; gap:8px}
+.history li{padding:8px 10px; border-radius:10px; background:rgba(255,255,255,0.04); display:flex; justify-content:space-between; gap:10px}
+.history li .expr{color:var(--sub)}
+
+/* Currency Converter */
+.conv{display:grid; gap:12px; padding:16px}
+.row{display:grid; grid-template-columns: 1fr 1fr; gap:10px}
+.conv input, .conv select{
+  width:100%; border-radius:12px; padding:12px; border:1px solid rgba(255,255,255,0.1);
+  background:rgba(255,255,255,0.06); color:var(--text); font-size:14px;
+}
+.muted{color:var(--sub); font-size:12px}
+
+/* tiny helper badges */
+.badge{font-size:10px; padding:5px 8px; border-radius:999px; background:rgba(255,255,255,0.06); color:var(--sub)}
+
+footer{opacity:.8; font-size:12px; color:var(--sub); text-align:center; padding:6px 0 16px}
+
+  </style>
+</head>
+<body>
+  <canvas id="rain"></canvas>
+  <div class="wrap">
+    <div class="center">
+      <header>
+        <div>
+          <h1>Futuristic RGB Calculator</h1>
+          <div class="sub">Tap digits to hear them (one → nine). Neon math vibes, history, and currency converter.</div>
+        </div>
+        <div class="badge">No external audio — speech synthesis</div>
+      </header><div class="grid">
+    <!-- Calculator panel -->
+    <section class="neon panel calc" aria-label="calculator">
+      <div class="display" aria-live="polite">
+        <div id="expr" class="expr"></div>
+        <div id="result" class="result">0</div>
+      </div>
+      <div class="keys">
+        <button class="btn clear" data-action="clear">AC<span class="sub">clear</span></button>
+        <button class="btn" data-action="back">⌫<span class="sub">back</span></button>
+        <button class="btn op" data-op="/">÷<span class="sub">divide</span></button>
+        <button class="btn op" data-op="*">×<span class="sub">multiply</span></button>
+
+        <!-- number buttons with word reading -->
+        <button class="btn" data-num="7">7<span class="sub">seven</span></button>
+        <button class="btn" data-num="8">8<span class="sub">eight</span></button>
+        <button class="btn" data-num="9">9<span class="sub">nine</span></button>
+        <button class="btn op" data-op="-">−<span class="sub">minus</span></button>
+
+        <button class="btn" data-num="4">4<span class="sub">four</span></button>
+        <button class="btn" data-num="5">5<span class="sub">five</span></button>
+        <button class="btn" data-num="6">6<span class="sub">six</span></button>
+        <button class="btn op" data-op="+">+<span class="sub">plus</span></button>
+
+        <button class="btn" data-num="1">1<span class="sub">one</span></button>
+        <button class="btn" data-num="2">2<span class="sub">two</span></button>
+        <button class="btn" data-num="3">3<span class="sub">three</span></button>
+        <button class="btn" data-action="percent">%<span class="sub">percent</span></button>
+
+        <button class="btn" data-num="0">0<span class="sub">zero</span></button>
+        <button class="btn" data-action="dot">.•<span class="sub">decimal</span></button>
+        <button class="btn eq" data-action="equals">= <span class="sub">evaluate</span></button>
+      </div>
+
+      <div class="history">
+        <h3>Usage history</h3>
+        <ul id="history"></ul>
+      </div>
+    </section>
+
+    <!-- Currency converter panel -->
+    <section class="neon panel conv" aria-label="currency converter">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px">
+        <h2 style="margin:0; font-size:18px">Currency Converter</h2>
+        <span class="badge">demo rates (editable)</span>
+      </div>
+      <div class="muted">Supports USD (Dollar), EUR (Euro), GBP (Pound), THB (Baht), MYR (Ringgit), IDR (Rupiah). Edit rates below if you need accuracy.</div>
+
+      <div class="row">
+        <input id="amt" type="number" step="any" value="100" />
+        <select id="from"></select>
+      </div>
+      <div class="row">
+        <input id="out" type="text" readonly />
+        <select id="to"></select>
+      </div>
+      <div class="row">
+        <button class="btn" id="swapBtn">⇄ Swap</button>
+        <button class="btn" id="convertBtn">Convert</button>
+      </div>
+
+      <details>
+        <summary class="muted">Edit demo rates</summary>
+        <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:10px" id="rateGrid"></div>
+        <div style="margin-top:8px; display:flex; gap:10px">
+          <button class="btn" id="updateRates">Update rates</button>
+          <span id="rateNote" class="muted">Base: USD = 1</span>
+        </div>
+      </details>
+    </section>
+  </div>
+
+  <footer>Tip: Press keyboard digits/ops too. Audio uses your device voice (speechSynthesis).</footer>
+</div>
+
+  </div>  <script>
+    // ===== Animated falling math rain =====
+    const rain = document.getElementById('rain');
+    const ctx = rain.getContext('2d');
+    const glyphs = '0123456789±×÷=πφσΛΩ∑√∞∫∂∆∇≈≠≤≥→θαβγδμλψω∧∨⊕⊗∴∵%';
+    let cols, drops;
+    function resizeRain(){
+      rain.width = window.innerWidth; rain.height = window.innerHeight;
+      cols = Math.floor(rain.width / 16);
+      drops = Array(cols).fill(1 + Math.random()*50);
+    }
+    function drawRain(){
+      ctx.fillStyle = 'rgba(10,11,16,0.35)';
+      ctx.fillRect(0,0,rain.width,rain.height);
+      ctx.font = '16px monospace';
+      for(let i=0;i<drops.length;i++){
+        const txt = glyphs[Math.floor(Math.random()*glyphs.length)];
+        // cycling hue for RGB vibes
+        const hue = (Date.now()/40 + i*12)%360;
+        ctx.fillStyle = `hsl(${hue}, 95%, 70%)`;
+        ctx.fillText(txt, i*16, drops[i]*16);
+        if(drops[i]*16 > rain.height && Math.random() > 0.965){ drops[i]=0 }
+        drops[i]++;
+      }
+      requestAnimationFrame(drawRain);
+    }
+    window.addEventListener('resize', resizeRain);
+    resizeRain();
+    drawRain();
+
+    // ===== Calculator logic =====
+    const resultEl = document.getElementById('result');
+    const exprEl = document.getElementById('expr');
+    const historyEl = document.getElementById('history');
+
+    const numWords = { '0':'zero','1':'one','2':'two','3':'three','4':'four','5':'five','6':'six','7':'seven','8':'eight','9':'nine' };
+
+    const speakEnabled = 'speechSynthesis' in window;
+    let audioCtx;
+    function clickTone(){
+      try{
+        audioCtx = audioCtx || new (window.AudioContext||window.webkitAudioContext)();
+        const o = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        o.type = 'sine'; o.frequency.value = 660 + Math.random()*60;
+        g.gain.setValueAtTime(0.0001, audioCtx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.15, audioCtx.currentTime+0.005);
+        g.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime+0.09);
+        o.connect(g).connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime+0.1);
+      }catch(e){/* ignore */}
+    }
+    function speakWord(w){
+      if(!speakEnabled) return;
+      const u = new SpeechSynthesisUtterance(w);
+      u.rate = 1.0; u.pitch = 1.0; u.volume = 0.9;
+      // Prefer English voice if available
+      const vs = speechSynthesis.getVoices();
+      const en = vs.find(v=>/en|US|UK/i.test(v.lang||v.name));
+      if(en) u.voice = en;
+      speechSynthesis.cancel();
+      speechSynthesis.speak(u);
+    }
+
+    let expr=""; // text expression
+    let justEvaluated=false;
+
+    function updateDisplay(){
+      exprEl.textContent = expr;
+      resultEl.textContent = previewEval(expr) ?? (expr?"":"0");
+    }
+
+    function addToHistory(e, r){
+      const li = document.createElement('li');
+      const a = document.createElement('span'); a.className='expr'; a.textContent = e;
+      const b = document.createElement('span'); b.className='res'; b.textContent = r;
+      li.appendChild(a); li.appendChild(b);
+      li.addEventListener('click',()=>{ expr = e; updateDisplay(); });
+      historyEl.prepend(li);
+      while(historyEl.children.length>12){ historyEl.removeChild(historyEl.lastChild); }
+    }
+
+    function inputNum(n){
+      clickTone();
+      if(justEvaluated){ expr=""; justEvaluated=false; }
+      expr += n;
+      const w = numWords[n]; if(w) speakWord(w);
+      updateDisplay();
+    }
+    function inputOp(op){
+      clickTone();
+      if(!expr && op!=='-') return; // don't start with op except minus
+      if(/[+\-*/%]$/.test(expr)) expr = expr.slice(0,-1); // replace last op
+      expr += op;
+      updateDisplay();
+    }
+    function back(){ clickTone(); expr = expr.slice(0,-1); updateDisplay(); }
+    function clearAll(){ clickTone(); expr=""; updateDisplay(); }
+    function dot(){ clickTone();
+      // avoid multiple dots in the current number token
+      const parts = expr.split(/([+\-*/%])/);
+      const last = parts[parts.length-1]||"";
+      if(last.includes('.')) return; expr += '.'; updateDisplay();
+    }
+
+    function safeEval(s){
+      if(!s) return 0;
+      // Disallow any illegal chars
+      if(/[^0-9.+\-*/%() ]/.test(s)) return NaN;
+      try{ return Function(`"use strict"; return (${s})`)(); }catch{ return NaN; }
+    }
+    function previewEval(s){
+      const val = safeEval(s.replace(/%/g,'/100'));
+      if(!isFinite(val)) return null;
+      if(Number.isNaN(val)) return null;
+      return Number(val.toFixed(12)).toString();
+    }
+
+function equals(){
+  clickTone();
+  const res = previewEval(expr);
+  if(res==null) return;
+  addToHistory(expr, res);
+  expr = res; 
+  justEvaluated = true; 
+  updateDisplay();
+
+  // 🔊 Suara hasil (male kalau tersedia)
+  if(speakEnabled && res){
+    const voices = speechSynthesis.getVoices();
+    const maleVoice = voices.find(v => 
+      v.lang === "id-ID" && v.name.toLowerCase().includes("male")
+    ) || voices.find(v => v.lang === "id-ID"); // fallback kalau ga ada male
+
+    const u = new SpeechSynthesisUtterance(res.toString());
+    u.lang = "id-ID"; // bahasa Indonesia
+    if(maleVoice) u.voice = maleVoice;
+
+    speechSynthesis.cancel(); // stop suara sebelumnya
+    speechSynthesis.speak(u);
+  }
+}
+
+    document.querySelectorAll('.keys .btn').forEach(btn=>{
+      btn.addEventListener('click', e=>{
+        const n = btn.dataset.num; const op = btn.dataset.op; const act = btn.dataset.action;
+        if(n!=null) return inputNum(n);
+        if(op) return inputOp(op);
+        if(act==='back') return back();
+        if(act==='clear') return clearAll();
+        if(act==='dot') return dot();
+        if(act==='percent'){ expr+='%'; updateDisplay(); clickTone(); return; }
+        if(act==='equals') return equals();
+      });
+    });
+
+    // Keyboard support
+    window.addEventListener('keydown', e =>{
+      if(e.key.match(/^[0-9]$/)){ inputNum(e.key); return }
+      if(['+','-','*','/','%'].includes(e.key)){ inputOp(e.key); return }
+      if(e.key==='Enter' || e.key==='='){ equals(); e.preventDefault(); }
+      if(e.key==='Backspace'){ back(); }
+      if(e.key==='Delete'){ clearAll(); }
+      if(e.key==='.'||e.key===','){ dot(); }
+    });
+
+    // ===== Currency converter (demo rates, editable) =====
+    const CODES = ['USD','EUR','GBP','THB','MYR','IDR'];
+    // Base USD = 1
+    let rates = { USD:1, EUR:0.91, GBP:0.77, THB:34.5, MYR:4.45, IDR:15500 };
+
+    const fromSel = document.getElementById('from');
+    const toSel = document.getElementById('to');
+    const amt = document.getElementById('amt');
+    const out = document.getElementById('out');
+
+    function buildCurrencySelect(sel){
+      sel.innerHTML = '';
+      CODES.forEach(c=>{
+        const o = document.createElement('option'); o.value=c; o.textContent=c; sel.appendChild(o);
+      });
+    }
+    buildCurrencySelect(fromSel); buildCurrencySelect(toSel);
+    fromSel.value='USD'; toSel.value='IDR';
+
+    function convert(){
+      const a = parseFloat(amt.value || '0');
+      const f = fromSel.value; const t = toSel.value;
+      const inUSD = a / rates[f];
+      const res = inUSD * rates[t];
+      out.value = Number(res.toFixed(4));
+      // add to history for traceability
+      addToHistory(`${a} ${f} → ${t}`, `${out.value}`);
+    }
+    document.getElementById('convertBtn').addEventListener('click', ()=>{ clickTone(); convert(); });
+    document.getElementById('swapBtn').addEventListener('click', ()=>{ clickTone(); const f=fromSel.value; fromSel.value=toSel.value; toSel.value=f; convert(); });
+
+    // Editable rates UI
+    const rateGrid = document.getElementById('rateGrid');
+    function renderRates(){
+      rateGrid.innerHTML='';
+      CODES.forEach(c=>{
+        const w = document.createElement('div');
+        const label = document.createElement('label'); label.className='muted'; label.textContent = `${c} (per USD)`;
+        const input = doncument.createElement('input'); input.type='number'; input.step='any'; input.value=rates[c]; input.dataset.code=c;
+        w.appendChild(label); w.appendChild(input); rateGrid.appendChild(w);
+      })
+    }
+    renderRates();
+    document.getElementById('updateRates').addEventListener('click',()=>{
+      document.querySelectorAll('#rateGrid input').forEach(inp=>{
+        const c = inp.dataset.code; const v = parseFloat(inp.value||'0');
+        if(isFinite(v) && v>0) rates[c]=v;
+      });
+      document.getElementById('rateNote').textContent = `Base: USD=1 • Updated ${new Date().toLocaleString()}`;
+      clickTone();
+      convert();
+    });
+
+    // First conversion preview
+    convert();
+  </script></body>
+</html>
